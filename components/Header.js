@@ -26,9 +26,12 @@ export default function Header() {
       </div>
 
       {/* Keep the tagline if you like it; remove this <h1> if not needed */}
-      <h1 className="pb-2 text-center text-[15px] text-[#777]">
-        Sydney Sweeney retail sentiment
-      </h1>
+<h1 className="pb-2 text-center text-[15px] text-[#777]">
+  <span className="bg-gradient-to-r from-pink-500 to-blue-500 bg-clip-text text-transparent">
+    Stonks Only Go Sween
+  </span>
+</h1>
+
     </header>
   );
 }
