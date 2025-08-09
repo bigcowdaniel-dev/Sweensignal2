@@ -1,6 +1,7 @@
 // components/TickerSheet.js
 'use client';
 
+import { useEffect } from 'react';
 import PriceChart from './PriceChart';
 
 export default function TickerSheet({
@@ -9,6 +10,16 @@ export default function TickerSheet({
   queryString = '',
   onClose = () => {},
 }) {
+  // Close on ESC
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e) {
+      if (e.key === 'Escape') onClose();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
   return (
     <>
       {/* Backdrop: absorbs clicks to close */}
@@ -19,29 +30,29 @@ export default function TickerSheet({
         onClick={onClose}
         aria-hidden={!open}
       />
-
       {/* Panel */}
       <aside
-        className={`fixed right-0 top-0 z-50 h-full w-full max-w-[560px] transform bg-white shadow-xl transition-transform ${
-          open ? 'translate-x-0' : 'translate-x-full pointer-events-none'
+        className={`fixed left-1/2 top-1/2 z-50 w-[92vw] max-w-2xl -translate-x-1/2 -translate-y-1/2 transform rounded-2xl border border-gray-200 bg-white shadow-xl transition-opacity ${
+          open ? 'opacity-100' : 'pointer-events-none opacity-0'
         }`}
         role="dialog"
         aria-modal="true"
-        aria-label="Ticker price"
+        aria-label={symbol ? `${symbol} share price` : 'Share price'}
+        onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b p-4">
-          <h2 className="text-lg font-medium">
-            {symbol ? `${symbol} — share price` : 'Share price'}
+        <div className="flex items-center justify-between border-b px-5 py-3">
+          <h2 className="text-base font-semibold">
+            {symbol ? `${symbol} share price` : 'Share price'}
           </h2>
           <button
             onClick={onClose}
-            className="rounded-md border px-2 py-1 text-sm hover:bg-gray-50"
+            className="text-sm underline hover:opacity-100 opacity-90"
           >
             Close
           </button>
         </div>
 
-        <div className="p-4">
+        <div className="p-5">
           {symbol ? (
             <PriceChart symbol={symbol} queryString={queryString} />
           ) : (
