@@ -1,7 +1,8 @@
+// app/page.js
 'use client';
 export const dynamic = 'force-dynamic';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 
@@ -10,155 +11,139 @@ import FeedCard from '../components/FeedCard';
 import StockTable from '../components/StockTable';
 import StickyBar from '../components/StickyBar';
 import Citations from '../components/Citations';
+import TickerSheet from '../components/TickerSheet';
 
 const fetcher = (url) => fetch(url).then((r) => r.json());
 
 export default function Page() {
-  return (
-    <Suspense fallback={null}>
-      <Main />
-    </Suspense>
-  );
-}
-
-function Main() {
   const params = useSearchParams();
-  const qs = params.toString();
-  const postsKey = `/api/posts${qs ? `?${qs}` : ''}`;
-  const sentiKey = `/api/sentiment${qs ? `?${qs}` : ''}`;
 
-  const { data: posts } = useSWR(postsKey, fetcher, { revalidateOnFocus: false });
-  const { data: sentiment } = useSWR(sentiKey, fetcher, { revalidateOnFocus: false });
+  // Preserve query flags (e.g., ?demo=1) for API/chart requests
+  const queryString = useMemo(() => {
+    const qs = new URLSearchParams(params ?? undefined);
+    return qs.toString();
+  }, [params]);
 
-  const [hoverTicker, setHoverTicker] = useState(null);
+  // Data
+  const { data: posts } = useSWR('/api/posts', fetcher, { suspense: false });
+  const { data: metrics } = useSWR('/api/sentiment', fetcher, { suspense: false });
 
-  // modal state
-  const [open, setOpen] = useState(null); // 'how', 'cites', or null
-  const toggle = (which) => setOpen((prev) => (prev === which ? null : which));
-  const close = () => setOpen(null);
+  // UI state
+  const [showHow, setShowHow] = useState(false);
+  const [showCitations, setShowCitations] = useState(false);
 
-  // close on ESC
+  // NEW: ticker sheet state
+  const [selectedTicker, setSelectedTicker] = useState(null);
+
+  // Intercept clicks on links to /ticker/XYZ and open the sheet instead
   useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === 'Escape') close();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    function onClick(e) {
+      // find the nearest anchor
+      const a = e.target instanceof Element ? e.target.closest('a') : null;
+      if (!a) return;
+      const href = a.getAttribute('href') || '';
+      // handle only internal ticker links: /ticker/XXX or /ticker/XXX?...
+      if (!/^\/ticker\/[A-Za-z0-9._-]+/.test(href)) return;
+
+      e.preventDefault();
+      try {
+        const url = new URL(href, window.location.origin);
+        const symbol = (url.pathname.split('/').pop() || '').toUpperCase();
+        if (symbol) setSelectedTicker(symbol);
+      } catch {
+        // fallback: crude parse
+        const parts = href.split('/');
+        const symbol = (parts[parts.length - 1] || '').split('?')[0].toUpperCase();
+        if (symbol) setSelectedTicker(symbol);
+      }
+    }
+
+    document.addEventListener('click', onClick);
+    return () => document.removeEventListener('click', onClick);
   }, []);
+
+  // Close helpers
+  const closeAllSheets = () => {
+    setShowHow(false);
+    setShowCitations(false);
+    setSelectedTicker(null);
+  };
 
   return (
     <main className="min-h-screen">
       <Header />
 
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 md:px-8">
-        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-          {/* Feed */}
-          <section className="md:col-span-2 space-y-3">
-            {(posts || []).map((item, idx) => (
-              <div key={item?.id ?? item?.url ?? idx} className="space-y-1">
-                <FeedCard item={item} onHoverTicker={setHoverTicker} />
-                <div className="px-3 pb-2 relative z-[999] pointer-events-auto">
-                  <Citations citations={item?.citations} />
-                </div>
-              </div>
-            ))}
-          </section>
+      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 sm:px-6 md:grid-cols-[minmax(0,1fr)_360px] md:px-8">
+        {/* Left: feed */}
+        <section className="space-y-4">
+          {(posts || []).map((p, i) => (
+            <FeedCard key={i} item={p} />
+          ))}
+        </section>
 
-          {/* Stock table */}
-          <aside className="md:col-span-1">
-<StockTable
-  metrics={sentiment?.tickers || {}}
-  hoveredTicker={hoverTicker}
-  onHover={setHoverTicker}
-/>
-
-            <p className="mt-2 text-xs text-[#777] rounded border border-gray-200 p-3">
-              Tip: Hover a row to preview price, or long-press on mobile.
-            </p>
-          </aside>
-        </div>
+        {/* Right: stock table */}
+        <aside>
+          <div className="rounded-xl border bg-white p-3">
+            <div className="mb-2 text-sm text-gray-500">
+              <strong>Tip:</strong> Hover a row to preview price, or click a ticker to open its chart.
+            </div>
+            <StockTable metrics={metrics || {}} />
+          </div>
+        </aside>
       </div>
 
-      {/* Sticky bar */}
+      {/* Bottom helpers */}
       <StickyBar
-        onOpenHowItWorks={() => toggle('how')}
-        onOpenCitations={() => toggle('cites')}
-        imageSrc="/sweeney.png" // place your PNG in /public/sweeney.png
+        onOpenHowItWorks={() => setShowHow(true)}
+        onOpenCitations={() => setShowCitations(true)}
       />
 
-      {/* Backdrop */}
-      {open && (
+      {/* Existing inline “How it works” content (kept) */}
+      {showHow && (
         <div
-          className="fixed inset-0 z-40 bg-black/40"
-          onClick={close}
-          aria-hidden="true"
-        />
-      )}
-
-      {/* How it Works Modal */}
-      {open === 'how' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          className="fixed inset-0 z-40 flex items-end justify-center p-4 sm:items-center"
+          onClick={closeAllSheets}
+        >
           <div
-            className="w-full max-w-xl rounded-xl bg-white shadow-2xl border"
+            className="max-h-[80vh] w-full max-w-2xl overflow-auto rounded-xl border bg-white p-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-5 py-3 border-b">
-              <h2 className="text-base font-semibold">How it Works</h2>
-              <button onClick={close} className="text-sm underline">
-                Close
-              </button>
-            </div>
-            <div className="p-5 text-sm space-y-3">
-              <p>
-                SweenSignal tracks Sydney Sweeney mentions across multiple sources, matches
-                them to brands and tickers, and calculates sentiment.
-              </p>
-              <ul className="list-disc ml-5">
-                <li>Data from Reddit, news, and other feeds</li>
-                <li>Tickers linked to brands or products she’s associated with</li>
-                <li>Overall sentiment combines positive, neutral, and negative posts</li>
-              </ul>
-            </div>
+            <h2 className="mb-2 text-lg font-medium">How it works</h2>
+            <p className="text-sm opacity-80">
+              SweenSignal tracks Sydney Sweeney mentions, maps co‑mentions to tickers, and scores association strength & sentiment.
+            </p>
+            <ul className="mt-3 list-disc pl-5 text-sm opacity-80">
+              <li>Sources: Reddit, News/RSS, optional xAI classify</li>
+              <li>Prices: Stooq daily OHLC</li>
+              <li>Demo mode: visit with <code>?demo=1</code></li>
+            </ul>
           </div>
         </div>
       )}
 
-      {/* Citations Modal */}
-      {open === 'cites' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Existing inline “Citations” content (kept) */}
+      {showCitations && (
+        <div
+          className="fixed inset-0 z-40 flex items-end justify-center p-4 sm:items-center"
+          onClick={closeAllSheets}
+        >
           <div
-            className="w-full max-w-2xl rounded-xl bg-white shadow-2xl border"
+            className="max-h-[80vh] w-full max-w-2xl overflow-auto rounded-xl border bg-white p-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-5 py-3 border-b">
-              <h2 className="text-base font-semibold">Citations</h2>
-              <button onClick={close} className="text-sm underline">
-                Close
-              </button>
-            </div>
-            <div className="p-5 text-sm max-h-[70vh] overflow-auto">
-              {Array.isArray(sentiment?.citations) && sentiment.citations.length > 0 ? (
-                <ul className="space-y-2">
-                  {sentiment.citations.map((c, i) => (
-                    <li key={i}>
-                      <a
-                        href={typeof c === 'string' ? c : c?.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="underline"
-                      >
-                        {typeof c === 'string' ? c : c?.title || c?.url}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p>No citations available.</p>
-              )}
-            </div>
+            <h2 className="mb-2 text-lg font-medium">Citations</h2>
+            <Citations />
           </div>
         </div>
       )}
+
+      {/* NEW: Ticker sheet */}
+      <TickerSheet
+        open={!!selectedTicker}
+        symbol={selectedTicker || ''}
+        queryString={queryString}
+        onClose={() => setSelectedTicker(null)}
+      />
     </main>
   );
 }
