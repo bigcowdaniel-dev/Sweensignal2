@@ -1,31 +1,26 @@
-"use client";
-
-import StatusPill from "./StatusPill";
-
-function Wordmark() {
-  return (
-    <div className="flex items-center gap-2 select-none">
-      <svg width="44" height="20" viewBox="0 0 110 50" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M5 35 C25 5, 45 45, 65 15 S105 25, 105 25" stroke="var(--pink)" strokeWidth="4" fill="none" />
-      </svg>
-      <span className="text-xl font-semibold">
-        <span className="text-blue">Sween</span><span className="text-pink">Signal</span>
-      </span>
-    </div>
-  );
-}
-
 export default function Header() {
+  const isDemo = process.env.NEXT_PUBLIC_FORCE_DEMO === "1";
+
   return (
-    <header className="flex items-center justify-between py-4 px-4 md:px-6">
-      <Wordmark />
-      <div className="hidden md:block text-meta">Sydney Sweeney retail sentiment</div>
-      <div className="flex items-center"><StatusPill /></div>
+    <header className="mx-auto max-w-6xl px-4 sm:px-6 md:px-8">
+      <div className="flex items-center justify-between py-4">
+        <div className="flex items-center gap-2">
+          {/* your logo stays the same */}
+          <span className="select-none text-lg font-semibold">
+            <span className="text-[#FF4FB2]">Sween</span><span className="text-[#1F8EFA]">Signal</span>
+          </span>
+        </div>
+
+        {isDemo && (
+          <span className="rounded-full border border-pink-200 bg-pink-50 px-3 py-1 text-xs text-pink-600">
+            Demo mode
+          </span>
+        )}
+      </div>
+
+      <h1 className="pb-2 text-center text-[15px] text-[#777]">
+        Sydney Sweeney retail sentiment
+      </h1>
     </header>
   );
 }
-
-
-
-
-
