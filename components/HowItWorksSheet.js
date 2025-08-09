@@ -1,9 +1,21 @@
 'use client';
+
+import { useEffect } from 'react';
+
 export default function HowItWorksSheet({
   open = false,
   onClose = () => {},
 }) {
-  // Backdrop: disabled when closed so it can’t block clicks
+  // Close on ESC
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e) {
+      if (e.key === 'Escape') onClose();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
   return (
     <>
       <div
@@ -13,23 +25,28 @@ export default function HowItWorksSheet({
         onClick={onClose}
         aria-hidden={!open}
       />
-      {/* Panel: disabled when closed */}
       <aside
+        className={`fixed left-1/2 top-1/2 z-50 w-[92vw] max-w-2xl -translate-x-1/2 -translate-y-1/2 transform rounded-2xl border border-gray-200 bg-white shadow-xl transition-opacity ${
+          open ? 'opacity-100' : 'pointer-events-none opacity-0'
+        }`}
         role="dialog"
         aria-modal="true"
-        className={`fixed right-0 top-0 z-50 h-full w-[380px] max-w-[90vw] bg-white shadow-xl transition-transform
-          ${open ? 'translate-x-0' : 'translate-x-full pointer-events-none'}`}
+        aria-label="How it Works"
+        onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b px-4 py-3">
-          <h2 className="text-sm font-semibold">How SweenSignal Works</h2>
-          <button onClick={onClose} className="text-sm underline">Close</button>
+        <div className="flex items-center justify-between border-b px-5 py-3">
+          <h2 className="text-base font-semibold">How it Works</h2>
+          <button onClick={onClose} className="text-sm underline opacity-90 hover:opacity-100">
+            Close
+          </button>
         </div>
-        <div className="p-4 text-sm space-y-3">
+
+        <div className="space-y-3 p-5 text-sm">
           <p>
-            We track <b>Sydney Sweeney</b> mentions + co-mentions with brands/tickers,
-            compute association strength & sentiment, and surface spikes as signals.
+            SweenSignal tracks Sydney Sweeney mentions across multiple sources, maps them to brands/tickers,
+            and computes sentiment + a simple “signal.”
           </p>
-          <ul className="list-disc ml-5">
+          <ul className="ml-5 list-disc">
             <li>Sources: Reddit, News/RSS, optional xAI classify</li>
             <li>Prices: Stooq daily OHLC</li>
             <li>Demo: visit with <code>?demo=1</code>; clear with <code>?demo=0</code></li>
