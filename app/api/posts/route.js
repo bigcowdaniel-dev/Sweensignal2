@@ -1,18 +1,77 @@
-import { NextResponse } from "next/server";
-import { fetchPosts } from "../../../lib/posts.js";
-
+// app/api/sentiment/route.js
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const runtime = "nodejs";
 
-export async function GET(request) {
-  const { searchParams } = new URL(request.url);
-  const demo = searchParams.get("demo") === "1";
-  const { posts } = await fetchPosts({ demo });
-  const res = NextResponse.json(posts);
-  res.headers.set("Cache-Control", "s-maxage=60, stale-while-revalidate=60");
-  return res;
+import { NextResponse } from "next/server";
+import { classifyWithXAI } from "@/lib/classifyWithXAI";
+import { mapTicker } from "@/lib/mapTicker";
+import { vaderScore, labelFromCompound } from "@/lib/sentiment";
+import { getCache, setCache } from "@/lib/cache";
+import { fetchReddit } from "@/lib/reddit";
+import { fetchNews } from "@/lib/news";
+import seeds from "@/lib/seeds";
+
+const TICKERS = ["AEO", "LEVI", "ULTA", "VSCO"];
+const CACHE_KEY = "sentiment:v1";
+const TTL_MS = 120 * 1000;
+
+async function getPosts({ demo }) {
+  try {
+    if (demo) return seeds;
+    const [r, n] = await Promise.allSettled([fetchReddit(), fetchNews()]);
+    const posts = []
+      .concat(r.status === "fulfilled" ? r.value : [])
+      .concat(n.status === "fulfilled" ? n.value : []);
+    return posts.length ? posts : seeds; // fallback seeds if empty
+  } catch {
+    return seeds;
+  }
 }
 
+export async function GET(req) {
+  const { searchParams } = new URL(req.url);
+  const demo = searchParams.get("demo") === "1";
 
+  const cached = getCache(CACHE_KEY, TTL_MS);
+  if (cached && !demo) return NextResponse.json(cached);
 
+  const posts = await getPosts({ demo });
 
+  // Ask xAI to classify (okay if it returns null)
+  const items = posts.map(p => ({ id: p.id, text: p.text }));
+  const out = await classifyWithXAI(items);
+  const byId = Object.fromEntries((out?.items || []).map(x => [x.id, x]));
 
+  // Merge + ALWAYS fallback-map ticker & sentiment if missing
+  const labeled = posts.map(p => {
+    const ai = byId[p.id] || {};
+    const ticker = ai.ticker || mapTicker(p.text) || mapTicker(p.url);
+    let score = typeof ai.score === "number" ? ai.score : vaderScore(p.text);
+    const sentiment = ai.sentiment || labelFromCompound(score);
+    return { ...p, ticker, score, sentiment };
+  }).filter(p => !!p.ticker);
+
+  // Summaries 
+  const summaries = {};
+  for (const t of TICKERS) {
+    const ps = labeled.filter(p => p.ticker === t);
+    const counts = { positive: 0, neutral: 0, negative: 0 };
+    let lastStrongPositive = null;
+    for (const p of ps) {
+      counts[p.sentiment] = (counts[p.sentiment] || 0) + 1;
+      if (p.sentiment === "positive" && p.score >= 0.6) {
+        if (!lastStrongPositive || p.createdAt > lastStrongPositive)
+          lastStrongPositive = p.createdAt;
+      }
+    }
+    const positives = counts.positive || 0;
+    const negatives = counts.negative || 0;
+    const strength = Math.max(0, Math.min(100, (positives - negatives) * 25 + positives * 10));
+    summaries[t] = { ticker: t, total: ps.length, counts, lastStrongPositive, strength };
+  }
+
+  const payload = { summaries, citations: out?.citations };
+  if (!demo) setCache(CACHE_KEY, payload);
+  return NextResponse.json(payload);
+}
