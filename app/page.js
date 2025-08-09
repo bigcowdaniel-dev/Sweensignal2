@@ -102,4 +102,42 @@ export default function Page() {
           >
             <h2 className="mb-2 text-lg font-medium">How it works</h2>
             <p className="text-sm opacity-80">
-              SweenSignal tracks Sydney Sweeney mentions, maps co‑mentions to tickers, and scores associa
+              SweenSignal tracks Sydney Sweeney mentions, maps co‑mentions to tickers, and scores association strength & sentiment.
+            </p>
+            <ul className="mt-3 list-disc pl-5 text-sm opacity-80">
+              <li>Sources: Reddit, News/RSS, optional xAI classify</li>
+              <li>Prices: Stooq daily OHLC</li>
+              <li>
+                Demo mode: visit with <code>?demo=1</code>
+              </li>
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {/* Citations — click outside closes */}
+      {showCitations && (
+        <div
+          className="fixed inset-0 z-40 flex items-end justify-center p-4 sm:items-center"
+          onClick={closeAllSheets}
+        >
+          <div
+            className="max-h-[80vh] w-full max-w-2xl overflow-auto rounded-xl border bg-white p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="mb-2 text-lg font-medium">Citations</h2>
+            <Citations />
+          </div>
+        </div>
+      )}
+
+      {/* Ticker slide‑over — click outside closes via TickerSheet backdrop */}
+      <TickerSheet
+        open={!!selectedTicker}
+        symbol={selectedTicker || ''}
+        queryString={queryString}
+        onClose={() => setSelectedTicker(null)}
+      />
+    </main>
+  );
+}
