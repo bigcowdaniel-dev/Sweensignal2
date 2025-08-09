@@ -25,13 +25,10 @@ export default function Header() {
         )}
       </div>
 
-      {/* Keep the tagline if you like it; remove this <h1> if not needed */}
-<h1 className="pb-2 text-center text-[15px] text-[#777]">
-  <span className="bg-gradient-to-r from-pink-500 to-blue-500 bg-clip-text text-transparent">
-    Stonks Only Go Sween
-  </span>
-</h1>
-
+      {/* tagline */}
+      <h1 className="pb-2 text-center text-[15px] text-[#777]">
+        Stonks Only Go Sween
+      </h1>
     </header>
   );
 }
