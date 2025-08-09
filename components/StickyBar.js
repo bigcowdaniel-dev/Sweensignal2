@@ -44,12 +44,14 @@ export default function StickyBar({
       </div>
 
       {/* Bottom-right: Sydney Sweeney image (non-interactive, won’t block clicks) */}
-      <img
-        src={imageSrc}
-        alt="Sydney Sweeney"
-        className="fixed bottom-3 right-3 w-32 md:w-40 h-auto rounded-lg shadow-lg pointer-events-none select-none"
-        draggable="false"
-      />
+// components/StickyBar.js  — replace the <img> at the bottom with this:
+<img
+  src={imageSrc}
+  alt="Sydney Sweeney"
+  className="fixed bottom-6 right-6 w-[320px] md:w-[400px] h-auto shadow-none rounded-none bg-transparent pointer-events-none select-none"
+  draggable="false"
+/>
+
     </>
   );
 }
