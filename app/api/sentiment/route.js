@@ -3,13 +3,13 @@ export const revalidate = 0;
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { classifyWithXAI } from "@/lib/classifyWithXAI";
-import { mapTicker } from "@/lib/mapTicker";
-import { vaderScore, labelFromCompound } from "@/lib/sentiment";
-import { getCache, setCache } from "@/lib/cache";
-import { fetchReddit } from "@/lib/reddit";
-import { fetchNews } from "@/lib/news";
-import seeds from "@/lib/seeds";
+import { classifyWithXAI } from "../../../lib/classifyWithXAI.js";
+import { mapTicker } from "../../../lib/mapTicker.js";
+import { vaderScore, labelFromCompound } from "../../../lib/sentiment.js";
+import { getCache, setCache } from "../../../lib/cache.js";
+import { fetchReddit } from "../../../lib/reddit.js";
+import { fetchNews } from "../../../lib/news.js";
+import seeds from "../../../lib/seeds.js";
 
 const TICKERS = ["AEO", "LEVI", "ULTA", "VSCO"];
 const CACHE_KEY = "sentiment:v1";
