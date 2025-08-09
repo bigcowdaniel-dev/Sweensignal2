@@ -12,7 +12,7 @@ import StickyBar from '../components/StickyBar';
 import HowItWorksSheet from '../components/HowItWorksSheet';
 import CitationsSheet from '../components/CitationsSheet';
 import OverallBar from '../components/OverallBar';
-import Citations from '../components/Citations'; // <- makes per-post links render
+import Citations from '../components/Citations';
 
 const fetcher = (url) => fetch(url).then((r) => r.json());
 
@@ -44,17 +44,5 @@ function Main() {
       neg += s.counts.negative || 0;
     });
     const total = pos + neu + neg || 0;
-    const pct = total ? Math.round((pos / total) * 100) : 0;
-    return { pos, neu, neg, total, pct };
-  }, [sentiment]);
-
-  // Hover link between feed and table
-  const [hoverTicker, setHoverTicker] = useState(null);
-
-  return (
-    <main className="min-h-screen">
-      <Header />
-
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 md:px-8">
-   
+    const pct = total ? Math.round((pos / total) * 
 ::contentReference[oaicite:0]{index=0}
