@@ -1,14 +1,13 @@
 'use client';
 export const dynamic = 'force-dynamic';
 
-import { Suspense, useMemo, useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 
 import Header from '../components/Header';
 import FeedCard from '../components/FeedCard';
 import StockTable from '../components/StockTable';
-import OverallBar from '../components/OverallBar';
 import Citations from '../components/Citations';
 
 const fetcher = (url) => fetch(url).then((r) => r.json());
@@ -30,25 +29,10 @@ function Main() {
   const { data: posts } = useSWR(postsKey, fetcher, { revalidateOnFocus: false });
   const { data: sentiment } = useSWR(sentiKey, fetcher, { revalidateOnFocus: false });
 
-  // Derived numbers for OverallBar
-  const overall = useMemo(() => {
-    const sums = sentiment?.summaries || {};
-    let pos = 0, neu = 0, neg = 0;
-    Object.values(sums).forEach((s) => {
-      if (!s?.counts) return;
-      pos += s.counts.positive || 0;
-      neu += s.counts.neutral || 0;
-      neg += s.counts.negative || 0;
-    });
-    const total = pos + neu + neg || 0;
-    const pct = total ? Math.round((pos / total) * 100) : 0;
-    return { pos, neu, neg, total, pct };
-  }, [sentiment]);
-
   // Hover link between feed and table
   const [hoverTicker, setHoverTicker] = useState(null);
 
-  // Local panels (no external components = no hidden overlays)
+  // Local panels (kept minimal; no overlays when closed)
   const [openHow, setOpenHow] = useState(false);
   const [openCitations, setOpenCitations] = useState(false);
 
@@ -57,13 +41,8 @@ function Main() {
       <Header />
 
       <div className="mx-auto max-w-6xl px-4 sm:px-6 md:px-8">
-        {/* Overall sentiment bar */}
-        <div className="mt-6">
-          <OverallBar percent={overall.pct} />
-        </div>
-
         {/* Two-column layout */}
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
           {/* Left: Feed */}
           <section className="md:col-span-2 space-y-3">
             {(posts || []).map((item, idx) => (
@@ -77,15 +56,15 @@ function Main() {
             ))}
           </section>
 
-          {/* Right: Stock Sentiment */}
+          {/* Right: Per-ticker Strength/Sentiment/SweenSignal */}
           <aside className="md:col-span-1">
             <StockTable
-              summaries={sentiment?.summaries || {}}
+              metrics={sentiment?.tickers || {}}
               hoveredTicker={hoverTicker}
               onHover={setHoverTicker}
             />
             <p className="mt-2 text-xs text-[#777] rounded border border-gray-200 p-3">
-              Tip: Hover a row to preview price, or long-press on mobile.
+              Tip: Click a ticker to view a dated price chart. Hover to preview.
             </p>
           </aside>
         </div>
@@ -122,7 +101,6 @@ function Main() {
       </div>
 
       {/* ---------- Inline panels (rendered only when open) ---------- */}
-      {/* How it works panel */}
       {openHow && (
         <>
           <div
@@ -141,23 +119,18 @@ function Main() {
             </div>
             <div className="p-4 text-sm space-y-3">
               <p>
-                We track <b>Sydney Sweeney</b> mentions and co-mentions with brands/tickers,
-                compute association strength & sentiment, and surface spikes as signals.
+                We compute <b>Strength</b> as the share of daily Sweeney posts that also mention a ticker.
+                <b> SweenSignal</b> is the z-score of today’s Strength times the sign of sentiment.
               </p>
               <ul className="list-disc ml-5">
-                <li>Sources: Reddit, News/RSS, optional xAI classify</li>
-                <li>Prices: Stooq daily OHLC</li>
-                <li>Demo: visit with <code>?demo=1</code>; clear with <code>?demo=0</code></li>
+                <li>Reverse SweenSignal triggers when 7-day EMA falls below 70% of baseline.</li>
+                <li>Toggle demo with <code>?demo=1</code>; clear with <code>?demo=0</code>.</li>
               </ul>
-              <p className="opacity-70">
-                There’s also a full page at <code>/how-it-works</code>.
-              </p>
             </div>
           </aside>
         </>
       )}
 
-      {/* Citations panel */}
       {openCitations && (
         <>
           <div
