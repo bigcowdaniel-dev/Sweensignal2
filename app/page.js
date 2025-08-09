@@ -1,6 +1,6 @@
-"use client";
-
+'use client';
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";   // <-- add this
 import useSWR from "swr";
 import Header from "../components/Header";
 import FeedCard from "../components/FeedCard";
@@ -13,8 +13,13 @@ import OverallBar from "../components/OverallBar";
 const fetcher = (url) => fetch(url).then((r) => r.json());
 
 export default function Page() {
-  const { data: posts } = useSWR("/api/posts", fetcher, { refreshInterval: 60000 });
-  const { data: sentiment } = useSWR("/api/sentiment", fetcher, { refreshInterval: 120000 });
+  const params = useSearchParams();                   // <-- add this
+  const qs = params.toString();                       // "demo=1" (or "")
+  const postsKey = `/api/posts${qs ? `?${qs}` : ""}`; // <-- forward
+  const sentiKey  = `/api/sentiment${qs ? `?${qs}` : ""}`;
+
+  const { data: posts } = useSWR(postsKey, fetcher);
+  const { data: sentiment } = useSWR(sentiKey, fetcher);
   const [hoverTicker, setHoverTicker] = useState(null);
   const [showHow, setShowHow] = useState(false);
   const [showCitations, setShowCitations] = useState(false);
