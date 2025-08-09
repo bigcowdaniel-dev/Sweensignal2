@@ -104,7 +104,7 @@ export default function StockTable({ metrics = {}, hoveredTicker, onHover = () =
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white">
+    <div className="stock-widget">
       <table className="w-full table-fixed text-sm">
         <thead className="bg-gray-50 text-xs uppercase text-gray-500">
           <tr>
@@ -126,12 +126,16 @@ export default function StockTable({ metrics = {}, hoveredTicker, onHover = () =
             rows.map((r) => {
               const sigClass =
                 r.sig > 0 ? 'text-green-600' : r.sig < 0 ? 'text-red-600' : 'text-gray-700';
+
+              const sentiTint =
+                r.senti > 0.05 ? 'row-positive' : r.senti < -0.05 ? 'row-negative' : 'row-neutral';
+
               return (
                 <tr
                   key={r.ticker}
                   onMouseEnter={() => onHover(r.ticker)}
                   onMouseLeave={() => onHover(null)}
-                  className={`border-t hover:bg-gray-50 ${hoveredTicker === r.ticker ? 'bg-gray-50' : ''}`}
+                  className={`border-t table-row-hover ${hoveredTicker === r.ticker ? 'bg-gray-50' : ''} ${sentiTint}`}
                 >
                   <td className="px-3 py-2">
                     <button
