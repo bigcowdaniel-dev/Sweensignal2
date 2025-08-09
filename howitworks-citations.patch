@@ -1,0 +1,192 @@
+diff --git a/app/how-it-works/page.js b/app/how-it-works/page.js
+new file mode 100644
+index 0000000..5b3f7f1
+--- /dev/null
++++ b/app/how-it-works/page.js
+@@ -0,0 +1,118 @@
++export const metadata = {
++  title: 'How SweenSignal Works',
++  description: 'What powers the signals, demo vs live, and data sources.',
++};
++
++export default function Page() {
++  return (
++    <main className="mx-auto max-w-3xl px-6 py-10 prose prose-sm sm:prose lg:prose-lg dark:prose-invert">
++      <h1>SweenSignal — How it works</h1>
++      <p>
++        SweenSignal tracks <strong>Sydney Sweeney</strong> mentions across the web and
++        maps co-mentions to public tickers (e.g., AEO, LEVI, ULTA, VSCO). It then
++        scores association strength and sentiment and surfaces spikes as signals.
++      </p>
++      <h2>Data sources</h2>
++      <ul>
++        <li>Reddit search (public endpoints)</li>
++        <li>News (RSS/Google News)</li>
++        <li>Optional: xAI classify / Live Search (if enabled)</li>
++        <li>Prices: Stooq daily OHLC</li>
++      </ul>
++      <p className="opacity-80">
++        API routes in this app include: <code>/api/posts</code>, <code>/api/sentiment</code>,
++        <code>/api/price/:ticker</code>. Use <code>?demo=1</code> on <code>/api/posts</code> to force seeds.
++      </p>
++
++      <h2>Demo vs Live</h2>
++      <p>
++        You can toggle demo mode two ways:
++      </p>
++      <ul>
++        <li>
++          Append <code>?demo=1</code> to the URL — sets a short-lived cookie so API calls use seeded posts.
++        </li>
++        <li>
++          Visit with <code>?demo=0</code> to clear the cookie and return to live sources.
++        </li>
++      </ul>
++      <p className="opacity-80">
++        Operators can also force demo via env vars: <code>FORCE_DEMO</code> /
++        <code>NEXT_PUBLIC_FORCE_DEMO</code>.
++      </p>
++
++      <h2>Citations</h2>
++      <p>
++        Each post should render a compact list of source links. On the server we normalize
++        a <code>citations</code> array for every post (deriving from <code>url</code>/<code>link</code>/<code>permalink</code>
++        when needed). On the client we display up to 4 citation links beneath the post card.
++      </p>
++
++      <h2>What gets surfaced</h2>
++      <ul>
++        <li><strong>Strength</strong>: co-mentions of Sweeney with a stock/brand, normalized.</li>
++        <li><strong>Sentiment</strong>: classifier or VADER score.</li>
++        <li><strong>SweenSignal</strong>: z-score of strength × sign(sentiment), per ticker.</li>
++      </ul>
++
++      <h2>Troubleshooting</h2>
++      <ul>
++        <li>Seeing “sample” posts? Clear demo via <code>?demo=0</code>, or remove force-demo envs.</li>
++        <li>No citations? Ensure <code>/api/posts</code> returns a <code>citations</code> array or a <code>url</code> to derive it.</li>
++      </ul>
++    </main>
++  );
++}
+diff --git a/components/Citations.jsx b/components/Citations.jsx
+new file mode 100644
+index 0000000..9a6f2d3
+--- /dev/null
++++ b/components/Citations.jsx
+@@ -0,0 +1,49 @@
++'use client';
++import React from 'react';
++
++/**
++ * Renders up to 4 compact citation links under a post.
++ * Accepts:
++ *  - [{ url, title?, source? }, ...] OR string[] (urls)
++ */
++export default function Citations({ citations }) {
++  const items = Array.isArray(citations) ? citations : [];
++  if (!items.length) return null;
++
++  return (
++    <div className="mt-2 text-xs opacity-80 flex flex-wrap gap-2">
++      {items.slice(0, 4).map((c, i) => {
++        const url = typeof c === 'string' ? c : c?.url;
++        if (!url) return null;
++        let host = '';
++        try {
++          host = new URL(url).hostname.replace(/^www\./, '');
++        } catch {}
++        const title = typeof c === 'string' ? host : (c?.title || host || 'source');
++        return (
++          <a
++            key={i}
++            href={url}
++            target="_blank"
++            rel="noreferrer"
++            className="underline hover:opacity-100"
++          >
++            {title}
++          </a>
++        );
++      })}
++    </div>
++  );
++}
+diff --git a/lib/citations.js b/lib/citations.js
+new file mode 100644
+index 0000000..8fb1f26
+--- /dev/null
++++ b/lib/citations.js
+@@ -0,0 +1,51 @@
++/**
++ * Ensure a post has a `citations` array.
++ * Derives citations from url/link/permalink; merges any existing citations.
++ */
++export function normalizeCitations(post) {
++  const arr = [];
++  const candidates = [post?.url, post?.link, post?.permalink];
++  for (const u of candidates) {
++    if (typeof u === 'string' && /^https?:\/\//.test(u)) {
++      arr.push({ url: u, source: safeHost(u) });
++      break;
++    }
++  }
++  if (Array.isArray(post?.citations)) {
++    for (const c of post.citations) {
++      if (typeof c === 'string') {
++        arr.push({ url: c, source: safeHost(c) });
++      } else if (c && c.url) {
++        arr.push({ url: c.url, title: c.title, source: c.source || safeHost(c.url) });
++      }
++    }
++  }
++  return { ...post, citations: dedupe(arr) };
++}
++
++function safeHost(u) {
++  try {
++    return new URL(u).hostname.replace(/^www\./, '');
++  } catch {
++    return '';
++  }
++}
++
++function dedupe(arr) {
++  const seen = new Set();
++  const out = [];
++  for (const x of arr) {
++    if (x?.url && !seen.has(x.url)) {
++      seen.add(x.url);
++      out.push(x);
++    }
++  }
++  return out;
++}
+diff --git a/docs/pr-how-it-works-citations.md b/docs/pr-how-it-works-citations.md
+new file mode 100644
+index 0000000..7a3f2a1
+--- /dev/null
++++ b/docs/pr-how-it-works-citations.md
+@@ -0,0 +1,53 @@
++# PR: How-it-works page + Citations v1
++
++## What
++- Adds `/how-it-works` page explaining data sources, demo vs live, and citations.
++- Adds `components/Citations.jsx` to render compact source links under posts.
++- Adds `lib/citations.js` with `normalizeCitations(post)` to guarantee a `citations` array.
++
++## Why
++- The “How it works?” entry was broken / missing.
++- Citations were not rendering because some posts lacked a `citations` array.
++
++## How
++- New files only; safe to merge. A small follow-up edit wires `normalizeCitations` into `/api/posts`.
++
++## Test plan
++1) Visit `/how-it-works` — page loads and explains toggles.
++2) Hit `/api/posts?demo=1` in the browser — each post should include a `citations` array.
++3) Ensure the client renders up to 4 links (after you add `<Citations citations={post.citations} />` in your post card).
++
++## Notes
++- Demo toggle: `?demo=1` sets cookie; `?demo=0` clears.
++- To force demo globally: set `FORCE_DEMO=1` and/or `NEXT_PUBLIC_FORCE_DEMO=1`.
