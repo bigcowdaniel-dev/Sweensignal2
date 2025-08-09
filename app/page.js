@@ -41,7 +41,6 @@ function Main() {
   const [openCite, setOpenCite] = useState(false);
 
   const citations = useMemo(() => {
-    // Collect up to ~20 unique sources from posts if present
     const out = [];
     const seen = new Set();
     (Array.isArray(posts) ? posts : []).forEach(p => {
@@ -62,9 +61,19 @@ function Main() {
       <div className="mx-auto grid h-full max-w-6xl grid-cols-12 gap-6 px-4 sm:px-6 md:px-8 py-2">
         {/* LEFT: News feed (the ONLY scrollable area) */}
         <section
-          className="col-span-12 lg:col-span-8 h-full overflow-y-auto pr-1"
-          aria-label="News feed"
+          className="feed-scroll col-span-12 lg:col-span-8 h-full overflow-y-auto pr-1"
+          aria-label="Sweeney Feed"
         >
+          {/* Sticky title bar for the feed */}
+          <div className="sticky top-0 z-10 -mx-1 mb-2 bg-[var(--bg)]/85 px-1 py-2 backdrop-blur-md">
+            <h2 className="flex items-center gap-2 text-sm font-semibold">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-gradient-to-r from-[#FF4FB2] to-[#1F8EFA]" />
+              <span className="bg-gradient-to-r from-[#FF4FB2] to-[#1F8EFA] bg-clip-text text-transparent">
+                Sweeney Feed
+              </span>
+            </h2>
+          </div>
+
           <div className="grid gap-4 pb-24">
             {(Array.isArray(posts) ? posts : []).map((item) => (
               <FeedCard
