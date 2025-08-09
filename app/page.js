@@ -15,28 +15,21 @@ import TickerSheet from '../components/TickerSheet';
 
 const fetcher = (url) => fetch(url).then((r) => r.json());
 
-// --- Page content that uses useSearchParams ---
 function PageClient() {
   const params = useSearchParams();
 
-  // Preserve query flags (e.g., ?demo=1) for API/chart requests
   const queryString = useMemo(() => {
     const qs = new URLSearchParams(params ?? undefined);
     return qs.toString();
   }, [params]);
 
-  // Data
   const { data: posts } = useSWR('/api/posts', fetcher, { suspense: false });
   const { data: metrics } = useSWR('/api/sentiment', fetcher, { suspense: false });
 
-  // UI state
   const [showHow, setShowHow] = useState(false);
   const [showCitations, setShowCitations] = useState(false);
-
-  // NEW: ticker sheet state
   const [selectedTicker, setSelectedTicker] = useState(null);
 
-  // Intercept clicks on links to /ticker/XYZ and open the sheet instead
   useEffect(() => {
     function onClick(e) {
       const a = e.target instanceof Element ? e.target.closest('a') : null;
@@ -55,7 +48,6 @@ function PageClient() {
         if (symbol) setSelectedTicker(symbol);
       }
     }
-
     document.addEventListener('click', onClick);
     return () => document.removeEventListener('click', onClick);
   }, []);
@@ -71,14 +63,12 @@ function PageClient() {
       <Header />
 
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 sm:px-6 md:grid-cols-[minmax(0,1fr)_360px] md:px-8">
-        {/* Left: feed */}
         <section className="space-y-4">
           {(posts || []).map((p, i) => (
             <FeedCard key={i} item={p} />
           ))}
         </section>
 
-        {/* Right: stock table */}
         <aside>
           <div className="rounded-xl border bg-white p-3">
             <div className="mb-2 text-sm text-gray-500">
@@ -89,13 +79,11 @@ function PageClient() {
         </aside>
       </div>
 
-      {/* Bottom helpers */}
       <StickyBar
         onOpenHowItWorks={() => setShowHow(true)}
         onOpenCitations={() => setShowCitations(true)}
       />
 
-      {/* “How it works” — closes when clicking outside */}
       {showHow && (
         <div
           className="fixed inset-0 z-40 flex items-end justify-center p-4 sm:items-center"
@@ -118,7 +106,6 @@ function PageClient() {
         </div>
       )}
 
-      {/* “Citations” — closes when clicking outside */}
       {showCitations && (
         <div
           className="fixed inset-0 z-40 flex items-end justify-center p-4 sm:items-center"
@@ -134,7 +121,6 @@ function PageClient() {
         </div>
       )}
 
-      {/* Ticker slide‑over — closes when clicking outside */}
       <TickerSheet
         open={!!selectedTicker}
         symbol={selectedTicker || ''}
@@ -145,7 +131,6 @@ function PageClient() {
   );
 }
 
-// --- Export wrapped in Suspense to satisfy Next’s requirement for useSearchParams ---
 export default function Page() {
   return (
     <Suspense fallback={null}>
