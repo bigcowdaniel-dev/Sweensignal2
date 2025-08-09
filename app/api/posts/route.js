@@ -32,13 +32,14 @@ function normalizeCitations(post) {
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
-  const demo = truthy(searchParams.get("demo"));
+  const demo = truthy(searchParams.get("demo")); // middleware (if present) will set this
 
   let { posts } = await fetchPosts({ demo });
   posts = (posts || []).map(normalizeCitations);
 
-  const res = NextResponse.json(posts);
-  res.headers.set("Cache-Control", "no-store");
+  const res = NextResponse.json(posts);         // your UI expects an array
+  res.headers.set("Cache-Control", "no-store"); // avoid demo/live mixing
   return res;
 }
+
 
