@@ -15,13 +15,17 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="min-h-screen">
+        {/* Simple top bar with a clickable How it works? link */}
+        <nav className="flex items-center gap-4 p-3 border-b">
+          <a href="/" className="font-semibold">SweenSignal</a>
+          <div className="flex-1" />
+          <a href="/how-it-works" className="underline opacity-80 hover:opacity-100">
+            How it works?
+          </a>
+        </nav>
+
         {children}
       </body>
     </html>
   );
 }
-
-
-
-
-
