@@ -2,8 +2,7 @@
 'use client';
 export const dynamic = 'force-dynamic';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 
 import Header from '../components/Header';
@@ -15,21 +14,25 @@ import TickerSheet from '../components/TickerSheet';
 
 const fetcher = (url) => fetch(url).then((r) => r.json());
 
-function PageClient() {
-  const params = useSearchParams();
+export default function Page() {
+  // --- Query string WITHOUT useSearchParams (avoids Suspense requirement) ---
+  const [rawSearch, setRawSearch] = useState('');
+  useEffect(() => {
+    // runs only on client
+    setRawSearch(window.location.search); // e.g. "?demo=1"
+  }, []);
+  const queryString = useMemo(() => (rawSearch.startsWith('?') ? rawSearch.slice(1) : rawSearch), [rawSearch]);
 
-  const queryString = useMemo(() => {
-    const qs = new URLSearchParams(params ?? undefined);
-    return qs.toString();
-  }, [params]);
-
+  // Data
   const { data: posts } = useSWR('/api/posts', fetcher, { suspense: false });
   const { data: metrics } = useSWR('/api/sentiment', fetcher, { suspense: false });
 
+  // UI state
   const [showHow, setShowHow] = useState(false);
   const [showCitations, setShowCitations] = useState(false);
   const [selectedTicker, setSelectedTicker] = useState(null);
 
+  // Intercept clicks on links to /ticker/XYZ and open the sheet instead
   useEffect(() => {
     function onClick(e) {
       const a = e.target instanceof Element ? e.target.closest('a') : null;
@@ -63,12 +66,14 @@ function PageClient() {
       <Header />
 
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 sm:px-6 md:grid-cols-[minmax(0,1fr)_360px] md:px-8">
+        {/* Left: feed */}
         <section className="space-y-4">
           {(posts || []).map((p, i) => (
             <FeedCard key={i} item={p} />
           ))}
         </section>
 
+        {/* Right: stock table */}
         <aside>
           <div className="rounded-xl border bg-white p-3">
             <div className="mb-2 text-sm text-gray-500">
@@ -79,11 +84,13 @@ function PageClient() {
         </aside>
       </div>
 
+      {/* Bottom helpers */}
       <StickyBar
         onOpenHowItWorks={() => setShowHow(true)}
         onOpenCitations={() => setShowCitations(true)}
       />
 
+      {/* How it works — click outside closes */}
       {showHow && (
         <div
           className="fixed inset-0 z-40 flex items-end justify-center p-4 sm:items-center"
@@ -95,46 +102,4 @@ function PageClient() {
           >
             <h2 className="mb-2 text-lg font-medium">How it works</h2>
             <p className="text-sm opacity-80">
-              SweenSignal tracks Sydney Sweeney mentions, maps co‑mentions to tickers, and scores association strength & sentiment.
-            </p>
-            <ul className="mt-3 list-disc pl-5 text-sm opacity-80">
-              <li>Sources: Reddit, News/RSS, optional xAI classify</li>
-              <li>Prices: Stooq daily OHLC</li>
-              <li>Demo mode: visit with <code>?demo=1</code></li>
-            </ul>
-          </div>
-        </div>
-      )}
-
-      {showCitations && (
-        <div
-          className="fixed inset-0 z-40 flex items-end justify-center p-4 sm:items-center"
-          onClick={closeAllSheets}
-        >
-          <div
-            className="max-h-[80vh] w-full max-w-2xl overflow-auto rounded-xl border bg-white p-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="mb-2 text-lg font-medium">Citations</h2>
-            <Citations />
-          </div>
-        </div>
-      )}
-
-      <TickerSheet
-        open={!!selectedTicker}
-        symbol={selectedTicker || ''}
-        queryString={queryString}
-        onClose={() => setSelectedTicker(null)}
-      />
-    </main>
-  );
-}
-
-export default function Page() {
-  return (
-    <Suspense fallback={null}>
-      <PageClient />
-    </Suspense>
-  );
-}
+              SweenSignal tracks Sydney Sweeney mentions, maps co‑mentions to tickers, and scores associa
