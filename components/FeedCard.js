@@ -7,91 +7,111 @@ const EMOJI = { positive: "😊", neutral: "😐", negative: "😡" };
 export default function FeedCard({ item, onHoverTicker }) {
   const [copied, setCopied] = useState(false);
 
-  // Build small meta line: SOURCE • 🙂/😐/😡 • TICKER
+  // SOURCE • 🙂/😐/😡 • PRIMARY TICKER (or —)
   const meta = [
-    (item?.source || "NEWS").toUpperCase(),
+    String(item?.source || "news").toUpperCase(),
     EMOJI[item?.sentiment] || "❔",
     item?.ticker || "—",
   ].join(" • ");
 
-  // Share button copies a demo-link anchored to this item
-  async function copyLink() {
-    try {
-      const origin =
-        typeof window !== "undefined" ? window.location.origin : "";
-      const url = `${origin}/?demo=1#${item?.id || ""}`;
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
-    } catch {
-      // no-op
-    }
-  }
-
-  // Hovering a card highlights its ticker in the right table
-  const hoverTicker =
-    item?.ticker ||
-    (Array.isArray(item?.tickers) && item.tickers.length ? item.tickers[0] : null);
+  // Up to 3 ticker chips
+  const chips = Array.isArray(item?.tickers) ? item.tickers.slice(0, 3) : [];
 
   return (
-    <article
-      className="rounded-lg border bg-white p-3 shadow-sm"
-      onMouseEnter={() => onHoverTicker?.(hoverTicker)}
-      onMouseLeave={() => onHoverTicker?.(null)}
-    >
-      {/* top meta + share */}
-      <div className="mb-2 flex items-center justify-between">
-        <div className="text-[11px] uppercase tracking-wide text-[#777]">
-          {meta}
-        </div>
-        <button
-          onClick={copyLink}
-          className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-700 hover:bg-gray-50"
-        >
-          Share
-        </button>
-      </div>
+    <article className="rounded-2xl border border-black/5 bg-white/80 backdrop-blur p-4 shadow-sm hover:shadow-md transition-shadow">
+      {/* Meta line */}
+      <div className="text-xs text-gray-500 tracking-wide mb-2">{meta}</div>
 
-      {/* main text */}
-      <a
-        href={item?.url || "#"}
-        target="_blank"
-        rel="noreferrer"
-        className="block text-[15px] leading-6"
-      >
-        {item?.text}
-      </a>
+      {/* Title / text */}
+      <h3 className="text-sm font-medium leading-5 mb-2">
+        {item?.title || truncate(item?.text, 140) || "(no title)"}
+      </h3>
 
-      {/* time + copy confirmation */}
-      <div className="mt-2 text-[11px] text-[#999]">
-        {formatTime(item?.ts || item?.createdAt)}
-        {copied && <span className="ml-2 text-[#FF4FB2]">Copied!</span>}
-      </div>
-
-      {/* source host link (small, like in your screenshot) */}
-      {item?.url && (
-        <a
-          href={item.url}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-1 inline-block text-[12px] text-[#888] underline"
-        >
-          {host(item.url)}
-        </a>
+      {/* Snippet */}
+      {item?.text && (
+        <p className="text-sm text-gray-700 line-clamp-3 mb-3">
+          {item.text}
+        </p>
       )}
+
+      {/* Ticker chips (hover to preview price chart in the table; click copies link) */}
+      {chips.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          {chips.map((t) => (
+            <button
+              key={t}
+              type="button"
+              onMouseEnter={() => onHoverTicker?.(t)}
+              onMouseLeave={() => onHoverTicker?.(null)}
+              className="text-xs rounded-full border px-2.5 py-1 hover:bg-black/5"
+              aria-label={`Focus ${t} in table`}
+              title={`Focus ${t} in table`}
+            >
+              ${t}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Footer: source host + open + copy */}
+      <div className="flex items-center gap-3 text-xs text-gray-500">
+        {item?.citations?.length > 0 && (
+          <a
+            href={firstUrl(item)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:no-underline"
+          >
+            {firstHost(item)}
+          </a>
+        )}
+
+        <span aria-hidden>•</span>
+
+        <button
+          type="button"
+          onClick={() => {
+            const u = firstUrl(item);
+            if (!u) return;
+            navigator.clipboard?.writeText(u);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1200);
+          }}
+          className="hover:underline"
+        >
+          {copied ? "Copied!" : "Copy link"}
+        </button>
+
+        {/* Timestamp on the right */}
+        <span className="ml-auto">{formatTs(item?.ts)}</span>
+      </div>
     </article>
   );
 }
 
-function formatTime(t) {
+function truncate(s, n) {
+  if (!s) return "";
+  s = String(s);
+  return s.length > n ? s.slice(0, n - 1) + "…" : s;
+}
+
+function formatTs(ts) {
   try {
-    if (!t) return "";
-    const d = typeof t === "number" ? new Date(t) : new Date(t);
+    const d = new Date(ts);
     if (isNaN(d.getTime())) return "";
     return d.toLocaleString();
   } catch {
     return "";
   }
+}
+
+function firstUrl(item) {
+  const c = Array.isArray(item?.citations) ? item.citations[0] : null;
+  return (typeof c === "string" ? c : c?.url) || item?.url || "";
+}
+
+function firstHost(item) {
+  return host(firstUrl(item));
 }
 
 function host(u) {
