@@ -1,3 +1,4 @@
+// components/StockTable.js
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -108,10 +109,10 @@ export default function StockTable({ metrics = {}, hoveredTicker, onHover = () =
       <table className="w-full table-fixed text-sm">
         <thead className="bg-gray-50 text-xs uppercase text-gray-500">
           <tr>
-            <th className="w-[28%] px-3 py-2 text-left">Ticker</th>
-            <th className="w-[24%] px-3 py-2 text-right">Mentions</th>
-            <th className="w-[24%] px-3 py-2 text-right">Sentiment</th>
-            <th className="w-[24%] px-3 py-2 text-right">SweenSignal</th>
+            <th className="w-[26%] px-3 py-2 text-left">Ticker</th>
+            <th className="w-[22%] px-3 py-2 text-right">Mentions</th>
+            <th className="w-[22%] px-3 py-2 text-right">Sentiment</th>
+            <th className="w-[30%] px-3 py-2 text-right">SweenSignal</th>
           </tr>
         </thead>
 
@@ -137,7 +138,7 @@ export default function StockTable({ metrics = {}, hoveredTicker, onHover = () =
                   onMouseLeave={() => onHover(null)}
                   className={`border-t table-row-hover ${hoveredTicker === r.ticker ? 'bg-gray-50' : ''} ${sentiTint}`}
                 >
-                  <td className="px-3 py-2">
+                  <td className="w-[26%] px-3 py-2">
                     <button
                       type="button"
                       onClick={() => openTicker(r.ticker)}
@@ -153,14 +154,16 @@ export default function StockTable({ metrics = {}, hoveredTicker, onHover = () =
                     )}
                   </td>
 
-                  <td className="px-3 py-2 text-right tabular-nums">{formatMentions(r.latest)}</td>
+                  <td className="w-[22%] px-3 py-2 text-right tabular-nums">
+                    {formatMentions(r.latest)}
+                  </td>
 
-                  <td className="px-3 py-2 text-right tabular-nums">
+                  <td className="w-[22%] px-3 py-2 text-right tabular-nums">
                     <span className="mr-1">{sentiBadge(r.senti)}</span>
                     {(r.senti >= 0 ? '+' : '') + r.senti.toFixed(2)}
                   </td>
 
-                  <td className={`px-3 py-2 text-right tabular-nums ${sigClass}`}>
+                  <td className={`w-[30%] px-3 py-2 text-right tabular-nums ${sigClass}`}>
                     {(r.sig >= 0 ? '+' : '') + r.sig.toFixed(2)}
                   </td>
                 </tr>
