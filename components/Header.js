@@ -5,6 +5,32 @@ import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState, useRef } from 'react';
 
+function ChartIcon() {
+  // tiny line chart icon to sit before the tagline text
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="mr-1 inline-block h-3.5 w-3.5 align-[-2px]"
+    >
+      <path
+        d="M3 17l5-6 4 4 6-8"
+        fill="none"
+        stroke="url(#g)"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <defs>
+        <linearGradient id="g" x1="0" x2="1">
+          <stop offset="0%" stopColor="#FF4FB2" />
+          <stop offset="100%" stopColor="#1F8EFA" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
+
 export default function Header() {
   const params = useSearchParams();
   const demoParam = params?.get('demo');
@@ -14,15 +40,10 @@ export default function Header() {
   // --- Tagline phrases (edit these to taste) ---
   const phrases = useMemo(
     () => [
-      'Stonks Only Go Sween',
-      'Buy the Sween, Sell the Dream',
-      'In Sween We Trust',
-      'Sween Today, Green Tomorrow',
-      'To the Sween 🌙',
-      'Powered by Pure Sweenergy',
-      'Spot the Sween Before the Street',
-      'Catch the Sween, Ride the Wave',
-      'From Sweeney to Stonks in Seconds',
+      'Spot the Sween before the Street',
+      'Vibes → Mentions → Moves',
+      'Fans talk, tickers walk',
+      'Meme momentum, simplified',
     ],
     []
   );
@@ -40,11 +61,11 @@ export default function Header() {
   }, [phrases.length]);
 
   // Fixed line height for smooth vertical translate
-  const lineHeightPx = 22; // keep in sync with text size/leading below
+  const lineHeightPx = 24; // bumped from 22 → 24 to match text-base
 
   return (
     <header className="sticky top-0 z-30 overflow-visible">
-      {/* Gradient brand bar behind the header */}
+      {/* Gradient brand band behind the header (taller: ~80px) */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-r from-[#FF4FB2]/10 to-[#1F8EFA]/10" />
 
       <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 md:px-8">
@@ -55,7 +76,7 @@ export default function Header() {
               <Image
                 src="/logo.png"
                 alt="SweenSignal"
-                width={280}
+                width={180}
                 height={56}
                 priority
                 className="h-14 w-auto object-contain"
@@ -64,7 +85,7 @@ export default function Header() {
 
             {/* Rotating tagline (vertical ticker style) */}
             <div
-              className="mt-1 h-[22px] overflow-hidden"
+              className="mt-1 h-[24px] overflow-hidden"
               aria-live="polite"
               aria-atomic="true"
             >
@@ -78,9 +99,10 @@ export default function Header() {
                 {phrases.map((text, i) => (
                   <li
                     key={i}
-                    className="h-[22px] leading-[22px] whitespace-nowrap"
+                    className="h-[24px] leading-[24px] whitespace-nowrap"
                   >
-                    <span className="select-none bg-gradient-to-r from-[#FF4FB2] to-[#1F8EFA] bg-clip-text text-[13px] font-semibold text-transparent drop-shadow-[0_0_1px_rgba(255,255,255,0.6)]">
+                    <span className="select-none bg-gradient-to-r from-[#FF4FB2] to-[#1F8EFA] bg-clip-text text-base font-medium text-transparent drop-shadow-[0_0_1px_rgba(255,255,255,0.6)]">
+                      <ChartIcon />
                       {text}
                     </span>
                   </li>
@@ -89,18 +111,15 @@ export default function Header() {
             </div>
           </div>
 
-          {/* Right: status badges */}
-          <div className="flex items-center gap-3 pt-1">
-            {isDemo && (
-              <span className="relative inline-flex items-center gap-2 rounded-full border border-pink-200 bg-pink-50 px-3 py-1 text-xs text-pink-700">
-                {/* custom pulsing dot (independent of Tailwind animate classes) */}
-                <span className="relative inline-block">
-                  <span className="pulse-ring" />
-                  <span className="pulse-core" />
-                </span>
-                Demo mode
+          {/* Right: demo pill */}
+          <div className="mt-1 shrink-0">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#EAEAEA] bg-white px-3 py-1.5 text-xs text-meta shadow-sm">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="pulse-core absolute inset-0" />
+                <span className={`absolute inset-0 rounded-full ${isDemo ? 'bg-[#FF4FB2]' : 'bg-gray-300'}`} />
               </span>
-            )}
+              Demo mode
+            </span>
           </div>
         </div>
       </div>
@@ -109,26 +128,13 @@ export default function Header() {
       <style jsx>{`
         .pulse-core {
           display: inline-block;
-          width: 8px;
-          height: 8px;
-          background: #ff4fb2;
-          border-radius: 9999px;
-          position: relative;
-          z-index: 2;
-        }
-        .pulse-ring {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          width: 8px;
-          height: 8px;
-          transform: translate(-50%, -50%);
+          width: 10px;
+          height: 10px;
           border-radius: 9999px;
           box-shadow: 0 0 0 0 rgba(255, 79, 178, 0.6);
-          animation: sween-pulse 1.2s ease-out infinite;
-          z-index: 1;
+          animation: pulse 1.6s infinite;
         }
-        @keyframes sween-pulse {
+        @keyframes pulse {
           0% {
             box-shadow: 0 0 0 0 rgba(255, 79, 178, 0.6);
           }
