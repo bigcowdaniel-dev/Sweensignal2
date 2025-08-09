@@ -1,37 +1,41 @@
-export const metadata = { title: "How it works • SweenSignal" };
+export const metadata = {
+  title: 'How SweenSignal Works',
+  description: 'What powers the signals, demo vs live, and data sources.',
+};
 
-export default function HowItWorksPage() {
+export default function Page() {
   return (
-    <main className="max-w-3xl mx-auto p-6 space-y-6">
-      <h1 className="text-2xl font-semibold">How SweenSignal works</h1>
-      <section className="card p-4 space-y-3">
-        <h2 className="font-medium">Sources</h2>
-        <ul className="list-disc list-inside text-sm text-meta">
-          <li>Reddit search for “Sydney Sweeney” and retail terms</li>
-          <li>Google News RSS for matching keywords</li>
-          <li>Optional xAI Live Search may consult recent web/news/X sources</li>
-        </ul>
-      </section>
-      <section className="card p-4 space-y-3">
-        <h2 className="font-medium">Sentiment</h2>
-        <p className="text-sm text-meta">
-          Primary labels use xAI. If unavailable or invalid, VADER fallback is used
-          with thresholds ±0.3. Backup ticker mapping uses simple regexes.
-        </p>
-      </section>
-      <section className="card p-4 space-y-3">
-        <h2 className="font-medium">Prices</h2>
-        <p className="text-sm text-meta">Daily prices via Stooq (AEO, LEVI, ULTA, VSCO).</p>
-      </section>
-      <section className="card p-4 space-y-3">
-        <h2 className="font-medium">Caching</h2>
-        <p className="text-sm text-meta">Posts and prices cached ~60s; sentiment ~120s.</p>
-      </section>
+    <main className="mx-auto max-w-3xl px-6 py-10 prose prose-sm sm:prose lg:prose-lg dark:prose-invert">
+      <h1>SweenSignal — How it works</h1>
+      <p>
+        SweenSignal tracks <strong>Sydney Sweeney</strong> mentions and maps co-mentions to tickers
+        (AEO, LEVI, ULTA, VSCO, etc.), then scores association strength & sentiment to surface spikes.
+      </p>
+
+      <h2>Data sources</h2>
+      <ul>
+        <li>Reddit search (public endpoints)</li>
+        <li>News (RSS/Google News)</li>
+        <li>Optional: xAI classify / Live Search (if enabled)</li>
+        <li>Prices: Stooq daily OHLC</li>
+      </ul>
+
+      <p className="opacity-80">
+        API routes: <code>/api/posts</code>, <code>/api/sentiment</code>, <code>/api/price/:ticker</code>.
+        Use <code>?demo=1</code> on <code>/api/posts</code> to force seeds.
+      </p>
+
+      <h2>Demo vs Live</h2>
+      <ul>
+        <li>Append <code>?demo=1</code> to the site URL — sets a cookie so API calls use seeded posts.</li>
+        <li>Visit with <code>?demo=0</code> once to clear the cookie and return to live.</li>
+      </ul>
+
+      <h2>Citations</h2>
+      <p>
+        Each post includes a compact list of source links. The server normalizes a <code>citations</code> array
+        (derived from <code>url</code>/<code>link</code>/<code>permalink</code> when needed) and the UI shows up to four.
+      </p>
     </main>
   );
 }
-
-
-
-
-
