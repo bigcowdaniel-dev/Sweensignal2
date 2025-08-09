@@ -66,11 +66,12 @@ function Main() {
 
           {/* Stock table */}
           <aside className="md:col-span-1">
-            <StockTable
-              summaries={sentiment?.summaries || {}}
-              hoveredTicker={hoverTicker}
-              onHover={setHoverTicker}
-            />
+<StockTable
+  metrics={sentiment?.tickers || {}}
+  hoveredTicker={hoverTicker}
+  onHover={setHoverTicker}
+/>
+
             <p className="mt-2 text-xs text-[#777] rounded border border-gray-200 p-3">
               Tip: Hover a row to preview price, or long-press on mobile.
             </p>
