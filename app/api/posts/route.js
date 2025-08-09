@@ -1,7 +1,5 @@
-// app/api/posts/route.js
 import { NextResponse } from "next/server";
 import { fetchPosts } from "../../../lib/posts.js";
-import { normalizeCitations } from "../../../lib/citations.js";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -11,15 +9,36 @@ function truthy(v) {
   const s = String(v).toLowerCase();
   return s === "" || s === "1" || s === "true" || s === "on" || s === "yes";
 }
+function host(u) { try { return new URL(u).hostname.replace(/^www\./,''); } catch { return "source"; } }
+function normalizeCitations(post) {
+  const out = [];
+  const tryUrls = [post?.url, post?.link, post?.permalink];
+  for (const u of tryUrls) {
+    if (typeof u === "string" && /^https?:\/\//.test(u)) {
+      out.push({ url: u, title: host(u), source: host(u) });
+      break;
+    }
+  }
+  if (Array.isArray(post?.citations)) {
+    for (const c of post.citations) {
+      const u = typeof c === "string" ? c : c?.url;
+      if (u && /^https?:\/\//.test(u)) out.push({ url: u, title: host(u), source: host(u) });
+    }
+  }
+  const seen = new Set();
+  const deduped = out.filter(x => x?.url && !seen.has(x.url) && seen.add(x.url));
+  return { ...post, citations: deduped };
+}
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
-  const demo = truthy(searchParams.get("demo")); // middleware adds ?demo=1 when demo mode is active
+  const demo = truthy(searchParams.get("demo"));
 
   let { posts } = await fetchPosts({ demo });
   posts = (posts || []).map(normalizeCitations);
 
-  const res = NextResponse.json(posts); // keep same shape your UI expects (array)
-  res.headers.set("Cache-Control", "no-store"); // stop mixing demo/live via caching
+  const res = NextResponse.json(posts);
+  res.headers.set("Cache-Control", "no-store");
   return res;
 }
+
