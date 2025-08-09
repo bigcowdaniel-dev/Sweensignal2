@@ -16,8 +16,9 @@ function formatMentions(x) {
 }
 
 function sentiBadge(score) {
-  if (score > 0.15) return '😊';
-  if (score < -0.15) return '😞';
+  if (!isNum(score)) return '😐';
+  if (score >= 0.3) return '😊';
+  if (score <= -0.3) return '😡';
   return '😐';
 }
 
@@ -42,13 +43,43 @@ function coerceRows(input) {
   return [];
 }
 
+// NORMALIZE SERVER SHAPES -> flat row for the table
 function normalizeRow(r = {}) {
   const ticker = r.ticker ?? r.symbol ?? r.name ?? '';
-  const mentions = r.latest ?? r.mentions ?? r.mentionShare ?? r.mention_rate ?? r.count ?? 0;
-  const senti = r.senti ?? r.sentiment ?? 0;
-  const sig = r.sig ?? r.signal ?? 0;
-  const reverse = !!(r.reverse ?? r.rev);
-  return { ticker, latest: Number(mentions) || 0, senti: Number(senti) || 0, sig: Number(sig) || 0, reverse };
+
+  // Mentions/share (support flat and nested)
+  const latest =
+    (isNum(r.latest) ? r.latest : null)
+    ?? (isNum(r.mentionShare) ? r.mentionShare : null)
+    ?? (isNum(r.mention_rate) ? r.mention_rate : null)
+    ?? (isNum(r.count) ? r.count : null)
+    ?? (isNum(r?.strength?.latest) ? r.strength.latest : null)
+    ?? 0;
+
+  // Sentiment score (support flat and nested)
+  const senti =
+    (isNum(r.senti) ? r.senti : null)
+    ?? (isNum(r.sentiment) ? r.sentiment : null)
+    ?? (isNum(r?.sentiment?.score) ? r.sentiment.score : null)
+    ?? 0;
+
+  // Signal value (support flat and nested)
+  const sig =
+    (isNum(r.sig) ? r.sig : null)
+    ?? (isNum(r.signal) ? r.signal : null)
+    ?? (isNum(r?.signal?.value) ? r.signal.value : null)
+    ?? 0;
+
+  // Reverse flag may be nested in signal
+  const reverse = Boolean(r.reverse ?? r.rev ?? r?.signal?.reverse);
+
+  return {
+    ticker,
+    latest: Number(latest) || 0,
+    senti: Number(senti) || 0,
+    sig: Number(sig) || 0,
+    reverse,
+  };
 }
 
 export default function StockTable({ metrics = {}, hoveredTicker, onHover = () => {} }) {
