@@ -8,9 +8,6 @@ import useSWR from 'swr';
 import Header from '../components/Header';
 import FeedCard from '../components/FeedCard';
 import StockTable from '../components/StockTable';
-import StickyBar from '../components/StickyBar';
-import HowItWorksSheet from '../components/HowItWorksSheet';
-import CitationsSheet from '../components/CitationsSheet';
 import OverallBar from '../components/OverallBar';
 import Citations from '../components/Citations';
 
@@ -51,6 +48,10 @@ function Main() {
   // Hover link between feed and table
   const [hoverTicker, setHoverTicker] = useState(null);
 
+  // Local panels (no external components = no hidden overlays)
+  const [openHow, setOpenHow] = useState(false);
+  const [openCitations, setOpenCitations] = useState(false);
+
   return (
     <main className="min-h-screen">
       <Header />
@@ -68,7 +69,7 @@ function Main() {
             {(posts || []).map((item, idx) => (
               <div key={item?.id ?? item?.url ?? idx} className="space-y-1">
                 <FeedCard item={item} onHoverTicker={setHoverTicker} />
-                {/* Clickable per-post citations */}
+                {/* Clickable per-post citations, outside any card link/overlay */}
                 <div className="px-3 pb-2 relative z-[999] pointer-events-auto">
                   <Citations citations={item?.citations} />
                 </div>
@@ -90,10 +91,112 @@ function Main() {
         </div>
       </div>
 
-      {/* Sheets / sticky controls */}
-      <HowItWorksSheet />
-      <CitationsSheet citations={sentiment?.citations || []} />
-      <StickyBar />
+      {/* ---------- Bottom controls (own buttons) ---------- */}
+      <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-3">
+        <button
+          onClick={() => setOpenHow(true)}
+          className="rounded-md border px-3 py-1 text-sm bg-white/90 hover:bg-white shadow"
+        >
+          🧠 How it works?
+        </button>
+        <button
+          onClick={() => setOpenCitations(true)}
+          className="rounded-md border px-3 py-1 text-sm bg-white/90 hover:bg-white shadow"
+        >
+          🔗 Citations
+        </button>
+      </div>
+      <div className="fixed bottom-3 right-6 z-[60]">
+        <button
+          onClick={() => {
+            const u =
+              process.env.NEXT_PUBLIC_STICKY_LINK_URL ||
+              (typeof window !== 'undefined' ? window.location.href : '');
+            if (!u) return;
+            navigator.clipboard?.writeText(u);
+          }}
+          className="rounded-md border px-3 py-1 text-sm bg-white/90 hover:bg-white shadow"
+        >
+          🔗 Copy live link
+        </button>
+      </div>
+
+      {/* ---------- Inline panels (rendered only when open) ---------- */}
+      {/* How it works panel */}
+      {openHow && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/40"
+            onClick={() => setOpenHow(false)}
+            aria-hidden="true"
+          />
+          <aside
+            role="dialog"
+            aria-modal="true"
+            className="fixed right-0 top-0 z-50 h-full w-[380px] max-w-[90vw] bg-white shadow-xl"
+          >
+            <div className="flex items-center justify-between border-b px-4 py-3">
+              <h2 className="text-sm font-semibold">How SweenSignal Works</h2>
+              <button onClick={() => setOpenHow(false)} className="text-sm underline">Close</button>
+            </div>
+            <div className="p-4 text-sm space-y-3">
+              <p>
+                We track <b>Sydney Sweeney</b> mentions and co-mentions with brands/tickers,
+                compute association strength & sentiment, and surface spikes as signals.
+              </p>
+              <ul className="list-disc ml-5">
+                <li>Sources: Reddit, News/RSS, optional xAI classify</li>
+                <li>Prices: Stooq daily OHLC</li>
+                <li>Demo: visit with <code>?demo=1</code>; clear with <code>?demo=0</code></li>
+              </ul>
+              <p className="opacity-70">
+                There’s also a full page at <code>/how-it-works</code>.
+              </p>
+            </div>
+          </aside>
+        </>
+      )}
+
+      {/* Citations panel */}
+      {openCitations && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/40"
+            onClick={() => setOpenCitations(false)}
+            aria-hidden="true"
+          />
+          <aside
+            role="dialog"
+            aria-modal="true"
+            className="fixed right-0 top-0 z-50 h-full w-[420px] max-w-[95vw] bg-white shadow-xl"
+          >
+            <div className="flex items-center justify-between border-b px-4 py-3">
+              <h2 className="text-sm font-semibold">Latest Citations</h2>
+              <button onClick={() => setOpenCitations(false)} className="text-sm underline">Close</button>
+            </div>
+            <div className="p-4 space-y-2 text-sm">
+              {Array.isArray(sentiment?.citations) && sentiment.citations.length > 0 ? (
+                sentiment.citations.slice(0, 50).map((c, i) => {
+                  const url = typeof c === 'string' ? c : c?.url;
+                  if (!url) return null;
+                  let host = '';
+                  try { host = new URL(url).hostname.replace(/^www\./, ''); } catch {}
+                  const title = typeof c === 'string' ? host : (c?.title || host || 'source');
+                  return (
+                    <div key={i} className="truncate">
+                      <a href={url} target="_blank" rel="noreferrer" className="underline hover:opacity-100">
+                        {title}
+                      </a>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="opacity-70">No citations yet.</p>
+              )}
+            </div>
+          </aside>
+        </>
+      )}
     </main>
   );
 }
