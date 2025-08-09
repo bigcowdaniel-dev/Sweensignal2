@@ -12,6 +12,7 @@ import StickyBar from '../components/StickyBar';
 import HowItWorksSheet from '../components/HowItWorksSheet';
 import CitationsSheet from '../components/CitationsSheet';
 import OverallBar from '../components/OverallBar';
+import Citations from '../components/Citations'; // ✅ NEW: per-post citations
 
 const fetcher = (url) => fetch(url).then((r) => r.json());
 
@@ -65,11 +66,16 @@ function Main() {
           {/* Left: Feed */}
           <section className="md:col-span-2 space-y-3">
             {(posts || []).map((item) => (
-              <FeedCard
-                key={item.id}
-                item={item}
-                onHoverTicker={setHoverTicker}
-              />
+              <div key={item.id} className="space-y-1">
+                <FeedCard
+                  item={item}
+                  onHoverTicker={setHoverTicker}
+                />
+                {/* ✅ NEW: clickable per-post citations, outside the card */}
+                <div className="px-3 pb-2 relative z-50 pointer-events-auto">
+                  <Citations citations={item.citations} />
+                </div>
+              </div>
             ))}
           </section>
 
@@ -94,4 +100,3 @@ function Main() {
     </main>
   );
 }
-
