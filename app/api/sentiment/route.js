@@ -7,6 +7,18 @@ export const revalidate = 0;
 
 const EPS = 1e-6;
 
+// Track these tickers even if zero this period
+const TRACKED = ["AEO", "LEVI", "ULTA", "VSCO", "META"];
+
+/** Brand/keyword → ticker heuristics so non-cashtag posts still count */
+const KEYWORD_TO_TICKER = [
+  { re: /\b(aerie|american\s+eagle)\b/i, ticker: "AEO" },
+  { re: /\blevi'?s?\b/i,                   ticker: "LEVI" },
+  { re: /\bulta\b/i,                       ticker: "ULTA" },
+  { re: /\bvictoria'?s?\s+secret|\bvsco\b/i, ticker: "VSCO" },
+  { re: /\bmeta|facebook|\binstagram\b|\big\b/i, ticker: "META" },
+];
+
 function toDateStr(ts) {
   try {
     if (!ts) return new Date().toISOString().slice(0, 10);
@@ -15,17 +27,6 @@ function toDateStr(ts) {
   } catch {
     return new Date().toISOString().slice(0, 10);
   }
-}
-
-function getTickersFromPost(p) {
-  const out = new Set();
-  if (Array.isArray(p?.tickers)) p.tickers.forEach((t) => t && out.add(String(t).toUpperCase()));
-  if (p?.ticker) out.add(String(p.ticker).toUpperCase());
-  // very light $TICKER regex as fallback
-  if (typeof p?.text === "string") {
-    for (const m of p.text.matchAll(/\$([A-Z]{1,5})/g)) out.add(m[1].toUpperCase());
-  }
-  return [...out];
 }
 
 function mean(arr) {
@@ -53,6 +54,60 @@ function labelToScore(lbl) {
   return 0;
 }
 
+/** Lightweight text sentiment fallback (when no label is provided) */
+function scoreSentiment(text = "") {
+  const s = String(text).toLowerCase();
+
+  const pos = new Set([
+    "good","great","bull","bullish","up","rally","strong","beat","beats","breakout",
+    "love","pump","momentum","buy","long","win","winner","gain","green"
+  ]);
+  const neg = new Set([
+    "bad","bear","bearish","down","dump","weak","miss","missed","crash",
+    "hate","sell","short","lose","loser","loss","red","concern","risk","risks"
+  ]);
+
+  let score = 0;
+  const tokens = s.split(/[^a-z$]+/);
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
+    const prev = tokens[i - 1] || "";
+    const flip = prev === "not" || prev === "dont" || prev === "don't" ||
+                 prev === "isn't" || prev === "wasn't" || prev === "ain't";
+    if (pos.has(t)) score += flip ? -1 : 1;
+    if (neg.has(t)) score += flip ? 1 : -1;
+  }
+  const denom = Math.max(Math.abs(score), 3);
+  return Math.max(-1, Math.min(1, score / denom));
+}
+
+/** Normalize a ticker symbol like "$AEO" → "AEO" */
+function normTicker(sym = "") {
+  return String(sym).replace(/^\$/,"").toUpperCase();
+}
+
+/** Extract tickers from a post: cashtags + brand heuristics */
+function getTickersFromPost(p) {
+  const out = new Set();
+
+  // 1) Any pre-parsed tickers from upstream
+  if (Array.isArray(p?.tickers)) p.tickers.forEach((t) => t && out.add(normTicker(t)));
+  if (p?.ticker) out.add(normTicker(p.ticker));
+
+  // 2) $TICKER in text
+  if (typeof p?.text === "string") {
+    for (const m of p.text.matchAll(/\$([A-Z]{1,5})/g)) out.add(normTicker(m[1]));
+  }
+
+  // 3) Brand keywords → tickers (so posts without cashtags still count)
+  const text = [p?.title, p?.text, p?.body, p?.caption].filter(Boolean).join(" ");
+  for (const { re, ticker } of KEYWORD_TO_TICKER) {
+    if (re.test(text)) out.add(ticker);
+  }
+
+  return [...out];
+}
+
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const demo = ["", "1", "true", "on", "yes"].includes(
@@ -64,11 +119,10 @@ export async function GET(request) {
   posts = Array.isArray(posts) ? posts : [];
 
   // 2) Group by day & ticker
-  const totalByDay = new Map(); // day -> total posts (used as denominator)
+  const totalByDay = new Map(); // day -> total posts (denominator)
   const byTickerDay = new Map(); // ticker -> Map(day -> count)
-  const sentiByTicker = new Map(); // ticker -> {pos,neu,neg}
+  const sentiByTicker = new Map(); // ticker -> {positive, neutral, negative}
 
-  // optional: collect unique citations for the Citations sheet
   const globalCitations = [];
   const seenCite = new Set();
 
@@ -77,22 +131,27 @@ export async function GET(request) {
     totalByDay.set(day, (totalByDay.get(day) || 0) + 1);
 
     const tickers = getTickersFromPost(p);
+    // Sentiment label from upstream (rare for xAI). If missing, compute from text.
     const lbl = p?.sentiment || p?.label || p?.prediction || p?.senti;
     const lblScore = labelToScore(lbl);
+    const fallbackScore = lblScore !== 0 ? lblScore : scoreSentiment(
+      [p?.title, p?.text, p?.body, p?.caption].filter(Boolean).join(" ")
+    );
 
-    for (const t of tickers) {
+    for (const tRaw of tickers) {
+      const t = normTicker(tRaw);
       if (!byTickerDay.has(t)) byTickerDay.set(t, new Map());
       const m = byTickerDay.get(t);
       m.set(day, (m.get(day) || 0) + 1);
 
       if (!sentiByTicker.has(t)) sentiByTicker.set(t, { positive: 0, neutral: 0, negative: 0 });
       const s = sentiByTicker.get(t);
-      if (lblScore > 0) s.positive += 1;
-      else if (lblScore < 0) s.negative += 1;
+      if (fallbackScore >  0.1) s.positive += 1;
+      else if (fallbackScore < -0.1) s.negative += 1;
       else s.neutral += 1;
     }
 
-    // collect one citation per post if present
+    // Collect one citation per post if present
     const candidates = [];
     if (Array.isArray(p.citations)) {
       for (const c of p.citations) {
@@ -112,12 +171,25 @@ export async function GET(request) {
     }
   }
 
+  // Ensure we always have at least one day (so latest indexing is safe)
+  if (totalByDay.size === 0) {
+    const today = toDateStr(Date.now());
+    totalByDay.set(today, 0);
+  }
+
   // Sort days ascending for reproducible series
   const days = [...totalByDay.keys()].sort();
 
   // 3) Compute metrics per ticker
   const tickers = {};
-  for (const [t, map] of byTickerDay.entries()) {
+
+  // Build set of all tickers we saw + the TRACKED defaults
+  const allTickers = new Set(TRACKED);
+  for (const t of byTickerDay.keys()) allTickers.add(t);
+
+  for (const t of allTickers) {
+    const map = byTickerDay.get(t) || new Map();
+
     const strengthSeries = days.map((d) => {
       const denom = totalByDay.get(d) || 0;
       const num = map.get(d) || 0;
@@ -141,8 +213,8 @@ export async function GET(request) {
 
     tickers[t] = {
       strength: {
-        latest,            // 0..1 fraction of day’s Sweeney posts
-        series: strengthSeries, // array aligned to `days`
+        latest,                 // 0..1 (share of Sweeney posts on the latest day)
+        series: strengthSeries, // aligned to `days`
         mu, sd, ema7, latestDate: days[days.length - 1] || null,
       },
       sentiment: {
@@ -152,7 +224,7 @@ export async function GET(request) {
       signal: {
         value: Number(signal.toFixed(3)),
         z: Number(z.toFixed(3)),
-        reverse, // true when strength falls below 70% of baseline
+        reverse, // true when strength falls below ~70% of baseline
       },
     };
   }
