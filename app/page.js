@@ -15,7 +15,8 @@ import TickerSheet from '../components/TickerSheet';
 
 const fetcher = (url) => fetch(url).then((r) => r.json());
 
-export default function Page() {
+// --- Page content that uses useSearchParams ---
+function PageClient() {
   const params = useSearchParams();
 
   // Preserve query flags (e.g., ?demo=1) for API/chart requests
@@ -38,11 +39,9 @@ export default function Page() {
   // Intercept clicks on links to /ticker/XYZ and open the sheet instead
   useEffect(() => {
     function onClick(e) {
-      // find the nearest anchor
       const a = e.target instanceof Element ? e.target.closest('a') : null;
       if (!a) return;
       const href = a.getAttribute('href') || '';
-      // handle only internal ticker links: /ticker/XXX or /ticker/XXX?...
       if (!/^\/ticker\/[A-Za-z0-9._-]+/.test(href)) return;
 
       e.preventDefault();
@@ -51,7 +50,6 @@ export default function Page() {
         const symbol = (url.pathname.split('/').pop() || '').toUpperCase();
         if (symbol) setSelectedTicker(symbol);
       } catch {
-        // fallback: crude parse
         const parts = href.split('/');
         const symbol = (parts[parts.length - 1] || '').split('?')[0].toUpperCase();
         if (symbol) setSelectedTicker(symbol);
@@ -62,7 +60,6 @@ export default function Page() {
     return () => document.removeEventListener('click', onClick);
   }, []);
 
-  // Close helpers
   const closeAllSheets = () => {
     setShowHow(false);
     setShowCitations(false);
@@ -98,7 +95,7 @@ export default function Page() {
         onOpenCitations={() => setShowCitations(true)}
       />
 
-      {/* Existing inline “How it works” content (kept) */}
+      {/* “How it works” — closes when clicking outside */}
       {showHow && (
         <div
           className="fixed inset-0 z-40 flex items-end justify-center p-4 sm:items-center"
@@ -121,7 +118,7 @@ export default function Page() {
         </div>
       )}
 
-      {/* Existing inline “Citations” content (kept) */}
+      {/* “Citations” — closes when clicking outside */}
       {showCitations && (
         <div
           className="fixed inset-0 z-40 flex items-end justify-center p-4 sm:items-center"
@@ -137,7 +134,7 @@ export default function Page() {
         </div>
       )}
 
-      {/* NEW: Ticker sheet */}
+      {/* Ticker slide‑over — closes when clicking outside */}
       <TickerSheet
         open={!!selectedTicker}
         symbol={selectedTicker || ''}
@@ -145,5 +142,14 @@ export default function Page() {
         onClose={() => setSelectedTicker(null)}
       />
     </main>
+  );
+}
+
+// --- Export wrapped in Suspense to satisfy Next’s requirement for useSearchParams ---
+export default function Page() {
+  return (
+    <Suspense fallback={null}>
+      <PageClient />
+    </Suspense>
   );
 }
