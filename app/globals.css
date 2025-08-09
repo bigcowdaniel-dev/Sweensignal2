@@ -2,38 +2,83 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===== Brand tokens ===== */
 :root {
   --pink: #FF4FB2;
   --blue: #1F8EFA;
   --lilac: #FFF3FA;
   --meta: #777;
   --text: #222;
-  --bg: #FFF;
+  /* Background for page content */
+  --bg: #FAFAFA;
+  /* Optional: ultra-faint pattern opacity (0.00–0.08) */
+  --pattern-opacity: 0.03;
 }
 
+/* ===== Base ===== */
 html, body {
-  background: var(--bg);
   color: var(--text);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  min-height: 100%;
+  /* Light page background + faint dot pattern */
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(rgba(0,0,0,var(--pattern-opacity)) 1px, transparent 1px);
+  background-size: 14px 14px;
 }
 
+/* Utility text color */
+.text-meta { color: var(--meta); }
+
+/* ===== Cards ===== */
 .card {
-  @apply rounded-xl border border-gray-200 bg-white shadow-sm;
+  @apply rounded-xl border bg-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-shadow;
+  border-color: #EAEAEA; /* slightly tinted border */
+}
+.card:hover {
+  @apply shadow-lg;
 }
 
-.btn {
-  @apply inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm hover:bg-gray-50 active:shadow;
-}
-
+/* Small pills / tags */
 .tag {
-  @apply inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[11px] text-meta;
+  @apply inline-flex items-center rounded-full border bg-gray-50 px-2 py-0.5 text-[11px];
+  border-color: #EAEAEA;
+  color: var(--meta);
 }
 
+/* Buttons */
+.btn {
+  @apply inline-flex items-center justify-center rounded-xl border bg-white px-3 py-2 text-sm shadow-sm hover:bg-gray-50 active:shadow;
+  border-color: #EAEAEA;
+}
+
+/* Toast */
 .toast {
   @apply fixed bottom-20 right-4 z-50 rounded-xl bg-black/80 px-3 py-2 text-xs text-white;
 }
 
+/* ===== Stock widget ===== */
+.stock-widget {
+  @apply rounded-xl border bg-white shadow-sm;
+  border-color: #EAEAEA;
+}
 
+/* Row sentiment tints */
+.row-positive { background: rgba(16, 185, 129, 0.08); }  /* emerald-500 @ 8% */
+.row-negative { background: rgba(239, 68, 68, 0.08); }   /* red-500 @ 8% */
+.row-neutral  { background: rgba(107, 114, 128, 0.05); } /* gray-500 @ 5% */
 
+/* Branded hover on rows */
+.table-row-hover:hover {
+  background-image: linear-gradient(90deg, rgba(255,79,178,0.08), rgba(31,142,250,0.08));
+}
 
-
+/* Upgrade existing FeedCard markup (it uses `rounded-lg border bg-white`) without editing the component */
+article.rounded-lg.border.bg-white {
+  border-color: #EAEAEA;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  transition: box-shadow 0.2s ease;
+}
+article.rounded-lg.border.bg-white:hover {
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); /* shadow-lg */
+}
