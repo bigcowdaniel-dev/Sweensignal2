@@ -12,7 +12,7 @@ import StickyBar from '../components/StickyBar';
 import HowItWorksSheet from '../components/HowItWorksSheet';
 import CitationsSheet from '../components/CitationsSheet';
 import OverallBar from '../components/OverallBar';
-import Citations from '../components/Citations'; // ✅ NEW: per-post citations
+import Citations from '../components/Citations'; // <- makes per-post links render
 
 const fetcher = (url) => fetch(url).then((r) => r.json());
 
@@ -48,7 +48,7 @@ function Main() {
     return { pos, neu, neg, total, pct };
   }, [sentiment]);
 
-  // Optional hover link between feed and table (won't break if unused by components)
+  // Hover link between feed and table
   const [hoverTicker, setHoverTicker] = useState(null);
 
   return (
@@ -56,47 +56,5 @@ function Main() {
       <Header />
 
       <div className="mx-auto max-w-6xl px-4 sm:px-6 md:px-8">
-        {/* Overall sentiment bar */}
-        <div className="mt-6">
-          <OverallBar percent={overall.pct} />
-        </div>
-
-        {/* Two-column layout */}
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-          {/* Left: Feed */}
-          <section className="md:col-span-2 space-y-3">
-            {(posts || []).map((item) => (
-              <div key={item.id} className="space-y-1">
-                <FeedCard
-                  item={item}
-                  onHoverTicker={setHoverTicker}
-                />
-                {/* ✅ NEW: clickable per-post citations, outside the card */}
-                <div className="px-3 pb-2 relative z-50 pointer-events-auto">
-                  <Citations citations={item.citations} />
-                </div>
-              </div>
-            ))}
-          </section>
-
-          {/* Right: Stock Sentiment */}
-          <aside className="md:col-span-1">
-            <StockTable
-              summaries={sentiment?.summaries || {}}
-              hoveredTicker={hoverTicker}
-              onHover={setHoverTicker}
-            />
-            <p className="mt-2 text-xs text-[#777] rounded border border-gray-200 p-3">
-              Tip: Hover a row to preview price, or long-press on mobile.
-            </p>
-          </aside>
-        </div>
-      </div>
-
-      {/* Sheets / sticky controls */}
-      <HowItWorksSheet />
-      <CitationsSheet citations={sentiment?.citations || []} />
-      <StickyBar />
-    </main>
-  );
-}
+   
+::contentReference[oaicite:0]{index=0}
