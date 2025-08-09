@@ -3,7 +3,7 @@
 export default function StickyBar({
   onOpenHowItWorks = () => {},
   onOpenCitations = () => {},
-  imageSrc = '/sweeney.png', // put your file in /public/sweeney.png
+  imageSrc = '/sweeney.png', // file lives in /public/sweeney.png (make sure it's transparent)
 }) {
   function copyLiveLink() {
     const url =
@@ -12,15 +12,13 @@ export default function StickyBar({
     if (!url) return;
     try {
       navigator.clipboard?.writeText(url);
-    } catch {
-      // no-op
-    }
+    } catch {}
   }
 
   return (
     <>
-      {/* Bottom-left: copy live link */}
-      <div className="fixed bottom-3 left-3 z-[60]">
+      {/* Bottom-left: Copy live link */}
+      <div className="fixed bottom-3 left-4 z-[60]">
         <button
           onClick={copyLiveLink}
           className="rounded-md border px-3 py-1 text-sm bg-white/90 hover:bg-white shadow"
@@ -41,7 +39,7 @@ export default function StickyBar({
           onClick={onOpenCitations}
           className="rounded-md border px-3 py-1 text-sm bg-white/90 hover:bg-white shadow"
         >
-          📚 Citations
+          🔗 Citations
         </button>
       </div>
 
@@ -49,7 +47,7 @@ export default function StickyBar({
       <img
         src={imageSrc}
         alt="Sydney Sweeney"
-        className="fixed bottom-3 right-3 w-32 md:w-40 h-auto rounded-lg shadow-lg pointer-events-none select-none"
+        className="fixed bottom-3 right-3 w-[320px] md:w-[400px] h-auto bg-transparent shadow-none drop-shadow-none rounded-none pointer-events-none select-none"
         draggable="false"
       />
     </>
