@@ -10,7 +10,7 @@
   --meta: #777;
   --text: #222;
   --bg: #FAFAFA;           /* light page bg so white cards pop */
-  --pattern-opacity: 0.03; /* 3% faint dot pattern; set to 0 to disable */
+  --pattern-opacity: 0.02; /* softer 2% faint dot pattern */
 }
 
 /* ===== Base (disable body scroll) ===== */
@@ -55,6 +55,17 @@ html, body {
   border-color: #EAEAEA;
 }
 
+/* --- Zebra striping for stock table, without overriding sentiment tints --- */
+.stock-widget tbody tr:not(.row-positive):not(.row-negative):not(.row-neutral):nth-child(odd) {
+  background-color: #FCFCFD;
+}
+.stock-widget tbody tr:not(.row-positive):not(.row-negative):not(.row-neutral):nth-child(even) {
+  background-color: #F7FAFF;
+}
+.stock-widget tbody tr:hover {
+  background-color: rgba(31,142,250,0.05);
+}
+
 /* Row sentiment tints */
 .row-positive { background: rgba(16,185,129,0.08); }
 .row-negative { background: rgba(239,68,68,0.08); }
@@ -63,6 +74,16 @@ html, body {
 /* Branded hover on rows */
 .table-row-hover:hover {
   background-image: linear-gradient(90deg, rgba(255,79,178,0.08), rgba(31,142,250,0.08));
+}
+
+/* ===== Feed visuals ===== */
+
+/* Alternate background tints for feed cards (subtle pink/blue) */
+.feed-scroll article:nth-child(odd) {
+  background-color: rgba(255,79,178,0.03); /* soft pink */
+}
+.feed-scroll article:nth-child(even) {
+  background-color: rgba(31,142,250,0.03); /* soft blue */
 }
 
 /* Upgrade existing FeedCard markup without touching component code */
