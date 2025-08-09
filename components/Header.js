@@ -1,3 +1,4 @@
+// components/Header.js
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -6,15 +7,16 @@ export default function Header() {
 
   return (
     <header className="mx-auto max-w-6xl px-4 sm:px-6 md:px-8">
-      <div className="flex items-center justify-between py-4">
+      <div className="flex items-center justify-between py-4 overflow-visible">
         {/* Clickable logo → home */}
-        <Link href="/" className="flex items-center">
+        <Link href="/" className="flex items-center overflow-visible">
           <Image
             src="/logo.png"
             alt="SweenSignal"
-            width={180}
+            width={200}
             height={40}
             priority
+            className="h-8 w-auto max-w-none"
           />
         </Link>
 
