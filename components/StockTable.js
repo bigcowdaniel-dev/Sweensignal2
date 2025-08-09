@@ -1,7 +1,8 @@
 'use client';
 
-import Link from 'next/link';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import TickerSheet from './TickerSheet';
 
 function pct(x) {
   return `${Math.round((x || 0) * 100)}%`;
@@ -14,41 +15,38 @@ function sentiBadge(score) {
 
 export default function StockTable({ metrics = {}, hoveredTicker, onHover = () => {} }) {
   const params = useSearchParams();
-  const qs = params.toString();
+  const [open, setOpen] = useState(false);
+  const [symbol, setSymbol] = useState('');
 
-  const rows = Object.entries(metrics || {}).map(([ticker, m]) => {
-    const s = m?.strength || {};
-    const latest = s.latest || 0;
-    const senti = m?.sentiment?.score ?? 0;
-    const sig = m?.signal?.value ?? 0;
-    return { ticker, latest, senti, sig, reverse: !!m?.signal?.reverse };
-  });
+  // Preserve whatever query string you’re using (?demo=1 etc)
+  const queryString = useMemo(() => {
+    const p = params?.toString?.() || '';
+    return p ? `?${p}` : '';
+  }, [params]);
 
-  if (!rows.length) {
-    return (
-      <div className="border rounded-lg p-4 bg-white">
-        <p className="text-sm opacity-70">No ticker metrics yet.</p>
-      </div>
-    );
+  const rows = useMemo(() => {
+    const r = Array.isArray(metrics?.rows) ? metrics.rows : [];
+    return r;
+  }, [metrics]);
+
+  function openTicker(sym) {
+    setSymbol(sym);
+    setOpen(true);
   }
 
-  // sort by strongest signal, desc
-  rows.sort((a, b) => Math.abs(b.sig) - Math.abs(a.sig));
-
   return (
-    <div className="border rounded-lg overflow-hidden bg-white">
-      <table className="w-full text-sm">
-        <thead className="bg-gray-50">
+    <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+      <table className="min-w-full text-sm">
+        <thead className="bg-gray-50 text-xs uppercase text-gray-500">
           <tr>
-            <th className="text-left px-3 py-2">Ticker</th>
-            <th className="text-right px-3 py-2">Strength</th>
-            <th className="text-right px-3 py-2">Sentiment</th>
-            <th className="text-right px-3 py-2">SweenSignal</th>
+            <th className="px-3 py-2 text-left">Ticker</th>
+            <th className="px-3 py-2 text-right">Mentions</th>
+            <th className="px-3 py-2 text-right">Sentiment</th>
+            <th className="px-3 py-2 text-right">SweenSignal</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => {
-            const href = `/ticker/${encodeURIComponent(r.ticker)}${qs ? `?${qs}` : ''}`;
             const sigClass =
               r.sig > 0 ? 'text-green-600' : r.sig < 0 ? 'text-red-600' : 'text-gray-700';
             return (
@@ -59,10 +57,20 @@ export default function StockTable({ metrics = {}, hoveredTicker, onHover = () =
                 className={`border-t hover:bg-gray-50 ${hoveredTicker === r.ticker ? 'bg-gray-50' : ''}`}
               >
                 <td className="px-3 py-2">
-                  <Link href={href} className="underline opacity-90 hover:opacity-100">
+                  {/* Button instead of Link — opens in-place sheet */}
+                  <button
+                    type="button"
+                    onClick={() => openTicker(r.ticker)}
+                    className="underline opacity-90 hover:opacity-100"
+                    aria-label={`Open ${r.ticker} share price`}
+                  >
                     {r.ticker}
-                  </Link>
-                  {r.reverse && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-800">reverse?</span>}
+                  </button>
+                  {r.reverse && (
+                    <span className="ml-2 rounded bg-yellow-100 px-1.5 py-0.5 text-[10px] text-yellow-800">
+                      reverse?
+                    </span>
+                  )}
                 </td>
                 <td className="px-3 py-2 text-right tabular-nums">{pct(r.latest)}</td>
                 <td className="px-3 py-2 text-right tabular-nums">
@@ -77,6 +85,14 @@ export default function StockTable({ metrics = {}, hoveredTicker, onHover = () =
           })}
         </tbody>
       </table>
+
+      {/* In-place ticker box (modal) */}
+      <TickerSheet
+        open={open}
+        symbol={symbol}
+        queryString={queryString}
+        onClose={() => setOpen(false)}
+      />
     </div>
   );
 }
